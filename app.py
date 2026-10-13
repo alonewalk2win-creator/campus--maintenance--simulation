@@ -1,18 +1,26 @@
-from flask import Flask, render_template, jsonify
 
-app = Flask(__name__)
+import streamlit as st
 
-@app.route("/")
-def home():
-    return render_template("index.html")
+st.set_page_config(
+    page_title="Campus Maintenance Simulation",
+    page_icon="🏫",
+    layout="wide"
+)
 
-@app.route("/simulation")
-def simulation():
-    return render_template("simulation.html")
+st.title("🏫 Campus Maintenance Simulation")
+st.write("Compare manual registers with a database-style workflow.")
 
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok", "application": "Campus Maintenance Simulation"})
+option = st.sidebar.selectbox(
+    "Choose a system",
+    ["Manual Register", "Database System"]
+)
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if option == "Manual Register":
+    st.subheader("📒 Manual Register")
+    st.info("Maintenance requests are tracked manually.")
+else:
+    st.subheader("🗃️ Database System")
+    st.success("Requests can be organized by priority and deadline.")
+
+if st.button("Advance Simulation"):
+    st.success("Simulation advanced successfully!")
