@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maintenance Simulator | CampusCare</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .sim{max-width:1100px;margin:36px auto;padding:0 22px 55px}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}
+    button{border:0;border-radius:9px;padding:12px 15px;font-weight:bold;cursor:pointer;background:#e7edf5;color:#17304b}
+    button:first-child{background:#176b55;color:white}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .metric,.panel{background:white;border:1px solid #e1e8f0;border-radius:14px;padding:18px}
+    .metric small{display:block;color:#65758a}.metric strong{display:block;font-size:1.8rem;margin-top:7px}
+    .panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+    .panel h2{font-size:1.25rem}.panel li{margin:10px 0;color:#52647a}
+    .log{background:#142338;color:#e7f0fa;border-radius:10px;padding:14px;height:150px;overflow:auto;font-family:monospace}
+    @media(max-width:700px){.metrics{grid-template-columns:1fr 1fr}.panels{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header class="site-header"><a class="brand" href="/">Campus<span>Care</span></a><nav><a href="/">Home</a><a class="nav-button" href="/simulation">Simulation</a></nav></header>
+<main class="sim">
+  <p class="eyebrow">INTERACTIVE DEMO</p><h1>Maintenance workflow simulator</h1>
+  <p class="section-intro">Advance time and explore sample maintenance request handling.</p>
+  <div class="controls"><button id="advance">Advance 1 hour</button><button id="surge">Add request surge</button><button id="leave">Technician leave</button><button id="reset">Reset</button></div>
+  <div class="metrics">
+    <div class="metric"><small>Simulation time</small><strong id="time">08:00</strong></div>
+    <div class="metric"><small>Open requests</small><strong id="open">8</strong></div>
+    <div class="metric"><small>Completed</small><strong id="done">0</strong></div>
+    <div class="metric"><small>Overdue</small><strong id="overdue">0</strong></div>
+  </div>
+  <div class="panels">
+    <section class="panel"><h2>📒 Manual Register</h2><p>Open requests in arrival order.</p><ul id="manual"></ul></section>
+    <section class="panel"><h2>🗃️ Database-style Workflow</h2><p>Open requests sorted by priority and deadline.</p><ul id="database"></ul></section>
+  </div>
+  <section class="panel" style="margin-top:16px"><h2>Event log</h2><div id="log" class="log" aria-live="polite"></div><p class="note">This browser simulation uses sample data and is not connected to a real database.</p></section>
+</main>
+<script>
+const starter=[
+{id:101,name:"Classroom fan repair",p:2,left:3},{id:102,name:"Lab projector issue",p:1,left:2},
+{id:103,name:"Water leak inspection",p:1,left:1},{id:104,name:"Library light replacement",p:3,left:5},
+{id:105,name:"Desk repair",p:3,left:6},{id:106,name:"Network room cooling",p:1,left:2},
+{id:107,name:"Restroom tap repair",p:2,left:4},{id:108,name:"Corridor cleaning request",p:3,left:5}];
+let tasks,hour,done,techs,events;
+const el=id=>document.getElementById(id);
+function reset(){tasks=starter.map(t=>({...t,status:"Open"}));hour=8;done=0;techs=3;events=["08:00 — Simulation ready."];render();}
+function clock(){return String(hour%24).padStart(2,"0")+":00";}
+function logEvent(s){events.unshift(clock()+" — "+s);events=events.slice(0,25);}
+function priority(p){return p===1?"High":p===2?"Medium":"Low";}
+function fillList(id,sorted){const ul=el(id);ul.innerHTML="";let arr=tasks.filter(t=>t.status==="Open");if(sorted)arr.sort((a,b)=>a.p-b.p||a.left-b.left);if(!arr.length){ul.innerHTML="<li>All requests completed.</li>";return;}arr.forEach(t=>{const li=document.createElement("li");li.textContent="#"+t.id+" "+t.name+" — "+priority(t.p)+", "+(t.left<=0?"OVERDUE":t.left+"h left");ul.appendChild(li);});}
+function render(){el("time").textContent=clock();el("open").textContent=tasks.filter(t=>t.status==="Open").length;el("done").textContent=done;el("overdue").textContent=tasks.filter(t=>t.status==="Open"&&t.left<=0).length;fillList("manual",false);fillList("database",true);el("log").innerHTML=events.map(s=>"<div>"+s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")+"</div>").join("");}
+el("advance").onclick=()=>{hour++;tasks.filter(t=>t.status==="Open").forEach(t=>t.left--);const open=tasks.filter(t=>t.status==="Open");const count=Math.min(techs,open.length);open.slice(0,count).forEach(t=>{t.status="Completed";done++;});logEvent(count+" request(s) completed; "+techs+" technician(s) available.");render();};
+el("surge").onclick=()=>{const id=Math.max(...tasks.map(t=>t.id))+1;tasks.push({id,name:"New urgent maintenance request",p:1,left:2,status:"Open"},{id:id+1,name:"Additional repair request",p:2,left:4,status:"Open"});logEvent("Two new requests added.");render();};
+el("leave").onclick=()=>{techs=Math.max(0,techs-1);logEvent("Technician leave simulated; "+techs+" technician(s) available.");render();};
+el("reset").onclick=reset;reset();
+</script>
+</body>
+</html>
